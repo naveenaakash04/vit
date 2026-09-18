@@ -1,0 +1,3 @@
+# Study Sentinel - Requirements
+# Python 3.10+ standard library only (csv, json, dataclasses, datetime, http, urllib)
+# No third-party packages required for core ingestion, review engine, and evaluations

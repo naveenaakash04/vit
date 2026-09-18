@@ -1,0 +1,53 @@
+{
+  "source": "representative public-format questions; no question-bank file was supplied in the repository",
+  "cut": 12,
+  "results": [
+    {
+      "question": "How many subjects discontinued due to adverse events at site S01?",
+      "answer": 1,
+      "evidence": [
+        {"domain": "DS", "usubjid": "042-S01-010", "seq": "1"}
+      ],
+      "explanation": "Counted unique subjects with a disposition reason indicating an adverse event."
+    },
+    {
+      "question": "Show LB records for 042-S08-001 within 1 days of baseline",
+      "answer": [
+        {"USUBJID": "042-S08-001", "LBSEQ": "7", "VISIT": "BASELINE", "LBDTC": "2026-01-13", "LBTESTCD": "ALT", "LBORRES": "37.4", "LBORRESU": "U/L"},
+        {"USUBJID": "042-S08-001", "LBSEQ": "8", "VISIT": "BASELINE", "LBDTC": "2026-01-13", "LBTESTCD": "AST", "LBORRES": "25.92", "LBORRESU": "U/L"},
+        {"USUBJID": "042-S08-001", "LBSEQ": "9", "VISIT": "BASELINE", "LBDTC": "2026-01-13", "LBTESTCD": "BILI", "LBORRES": "0.73", "LBORRESU": "mg/dL"},
+        {"USUBJID": "042-S08-001", "LBSEQ": "10", "VISIT": "BASELINE", "LBDTC": "2026-01-13", "LBTESTCD": "HBA1C", "LBORRES": "9.12", "LBORRESU": "%"},
+        {"USUBJID": "042-S08-001", "LBSEQ": "11", "VISIT": "BASELINE", "LBDTC": "2026-01-13", "LBTESTCD": "GLUC", "LBORRES": "111.0", "LBORRESU": "mg/dL"},
+        {"USUBJID": "042-S08-001", "LBSEQ": "12", "VISIT": "BASELINE", "LBDTC": "2026-01-13", "LBTESTCD": "CREAT", "LBORRES": "0.8", "LBORRESU": "mg/dL"}
+      ],
+      "evidence": [
+        {"domain": "LB", "usubjid": "042-S08-001", "seq": "7"},
+        {"domain": "LB", "usubjid": "042-S08-001", "seq": "8"},
+        {"domain": "LB", "usubjid": "042-S08-001", "seq": "9"},
+        {"domain": "LB", "usubjid": "042-S08-001", "seq": "10"},
+        {"domain": "LB", "usubjid": "042-S08-001", "seq": "11"},
+        {"domain": "LB", "usubjid": "042-S08-001", "seq": "12"}
+      ],
+      "explanation": "Lookup returned all visible records for the requested subject and domain."
+    },
+    {
+      "question": "What are the potential Hy law candidates?",
+      "answer": ["042-S07-001", "042-S05-003", "042-S08-014"],
+      "evidence": [
+        {"domain": "LB", "usubjid": "042-S07-001", "seq": "25"},
+        {"domain": "LB", "usubjid": "042-S07-001", "seq": "27"},
+        {"domain": "LB", "usubjid": "042-S05-003", "seq": "31"},
+        {"domain": "LB", "usubjid": "042-S05-003", "seq": "33"},
+        {"domain": "LB", "usubjid": "042-S08-014", "seq": "31"},
+        {"domain": "LB", "usubjid": "042-S08-014", "seq": "33"}
+      ],
+      "explanation": "Candidates meet ALT or AST > 3x ULN and bilirubin > 2x ULN within 14 days."
+    },
+    {
+      "question": "Were there dosing errors at site S01?",
+      "answer": [],
+      "evidence": [],
+      "explanation": "No dosing errors were found."
+    }
+  ]
+}

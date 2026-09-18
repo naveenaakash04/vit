@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atlas | Study Sentinel</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">A</span><div><p class="eyebrow">STUDY SENTINEL</p><h1>Atlas review desk</h1></div></div>
+      <div class="cut-control"><label for="cut">Data cut</label><select id="cut"></select><span id="protocol" class="protocol">Protocol v3</span></div>
+    </header>
+
+    <section class="hero-grid">
+      <div class="intro"><p class="eyebrow">CLINICAL DATA INTELLIGENCE</p><h2>See the signal.<br><em>Keep the evidence.</em></h2><p class="lede">A cut-aware workspace for asking precise questions across the synthetic Phase III study.</p><div class="status"><span class="status-dot"></span><span>Atlas engine online</span></div></div>
+      <div class="metrics" id="metrics"><div class="metric"><span>Subjects</span><strong>--</strong></div><div class="metric"><span>Graph nodes</span><strong>--</strong></div><div class="metric"><span>Edges</span><strong>--</strong></div><div class="metric"><span>Build time</span><strong>--</strong></div></div>
+    </section>
+
+    <section class="workspace">
+      <div class="panel question-panel"><div class="panel-head"><div><p class="eyebrow">ASK ATLAS</p><h3>Review a question</h3></div><span class="panel-index">01</span></div><textarea id="question" placeholder="Ask about a finding, a subject, or a site...">What are the potential Hy law candidates?</textarea><div class="question-toolbar"><span class="helper-text">Press Ctrl/Cmd + Enter to run</span></div><div class="suggestions"><button data-question="What are the potential Hy law candidates?">Hy's law</button><button data-question="Were there dosing errors at site S01?">Dose errors · S01</button><button data-question="How many subjects discontinued due to adverse events at site S01?">AE discontinuations</button></div><button id="ask" class="primary">Run review <span>↗</span></button></div>
+      <div class="panel answer-panel"><div class="panel-head"><div><p class="eyebrow">ANSWER</p><h3 id="answer-title">Waiting for a question</h3></div><span class="answer-badge" id="answer-badge">READY</span></div><div id="answer-body" class="answer-body empty"><div class="empty-icon">+</div><p>The answer and its supporting record references will appear here.</p></div></div>
+    </section>
+
+    <section class="patient-strip"><div><p class="eyebrow">PATIENT 360 & KNOWLEDGE GRAPH</p><h3>Open a subject trajectory & graph</h3></div><div class="patient-search"><input id="subject" placeholder="e.g. 042-S08-001"><button id="open-patient" class="secondary">Open subject <span>↗</span></button></div></section>
+    <section id="patient" class="panel patient-panel hidden"></section>
+
+    <section class="panel risk-section">
+      <div class="panel-head"><div><p class="eyebrow">RISK ANALYTICS</p><h3>Risk Prediction and Risk Replay</h3></div><span class="panel-index">03</span></div>
+      <div class="risk-grid">
+        <div class="risk-box">
+          <div class="risk-header"><h4>Risk Prediction</h4><span id="risk-pill" class="risk-pill neutral">Low</span></div>
+          <div class="risk-search"><input id="risk-subject" placeholder="subject ID" value="042-S01-001"><button id="risk-run" class="primary">Predict</button></div>
+          <div id="risk-score" class="risk-score">0</div>
+          <div class="risk-bar"><span id="risk-fill"></span></div>
+          <p id="risk-summary" class="risk-summary">Loading risk summary…</p>
+        </div>
+        <div class="risk-box">
+          <div class="risk-header"><h4>Risk Replay</h4><span class="risk-pill neutral">Timeline</span></div>
+          <div class="risk-search"><input id="replay-subject" placeholder="subject ID" value="042-S01-001"><button id="replay-run" class="secondary">Replay</button></div>
+          <ul id="replay-list" class="replay-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="stage2-strip">
+      <div class="stage2-header">
+        <div>
+          <p class="eyebrow">STAGE 2 AUTOMATED MONITOR CREW</p>
+          <h3>Autonomous 6-Node Clinical Review Pipeline</h3>
+        </div>
+        <button id="run-crew" class="primary">Execute Review Cycle <span>⚡</span></button>
+      </div>
+      <div id="crew-results" class="crew-results hidden">
+        <div class="crew-stats" id="crew-stats"></div>
+        <div class="crew-tabs">
+          <button class="tab-btn active" id="tab-escalations">🚨 Escalations & Human Gate</button>
+          <button class="tab-btn" id="tab-queries">📝 Data Queries</button>
+          <button class="tab-btn" id="tab-deviations">⚖ Protocol Deviations</button>
+          <button class="tab-btn" id="tab-trace">📜 Execution Trace</button>
+        </div>
+        <div id="panel-escalations" class="crew-content"></div>
+        <div id="panel-queries" class="crew-content hidden"></div>
+        <div id="panel-deviations" class="crew-content hidden"></div>
+        <div id="panel-trace" class="crew-content hidden"></div>
+      </div>
+    </section>
+
+    <footer><span>ATLAS / LOCAL REVIEW ENVIRONMENT</span><span>Evidence is cited as domain · USUBJID · sequence</span></footer>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
