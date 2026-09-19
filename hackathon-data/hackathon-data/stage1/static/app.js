@@ -18,6 +18,15 @@ for (let value = 1; value <= 12; value += 1) {
 
 const formatNumber = (value) => new Intl.NumberFormat().format(value);
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 async function getJson(url) {
   const response = await fetch(url);
   const payload = await response.json();
