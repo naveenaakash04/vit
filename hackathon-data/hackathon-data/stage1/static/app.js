@@ -103,7 +103,7 @@ function drawSubjectKnowledgeGraph(canvas, data) {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const width = (canvas.width = canvas.parentElement.clientWidth || 700);
-  const height = (canvas.height = 430);
+  const height = (canvas.height = 500);
 
   ctx.clearRect(0, 0, width, height);
 
@@ -121,8 +121,8 @@ function drawSubjectKnowledgeGraph(canvas, data) {
     { name: 'EG', label: `ECG (${data.ecg ? data.ecg.length : 0})`, count: data.ecg ? data.ecg.length : 0, color: '#16a085', bg: '#e8f8f5' },
   ];
 
-  const radius = Math.min(width, height) * 0.36;
-  const cardWidth = Math.min(156, width * 0.22);
+  const radius = Math.min(width, height) * 0.40;
+  const cardWidth = Math.min(150, width * 0.21);
   const cardHeight = 64;
   const nodePositions = [];
 
