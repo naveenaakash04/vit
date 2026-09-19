@@ -399,7 +399,7 @@ async function runStage2Crew() {
     ].map(([l, v]) => `<div class="crew-stat"><span>${l}</span><strong>${v}</strong></div>`).join('');
 
     // Escalations Card List
-    pEsc.innerHTML = data.escalations.length ? data.escalations.map((e) => {
+    let escHtml = data.escalations.length ? data.escalations.map((e) => {
       const bClass = e.status === 'APPROVED' ? 'badge-approved' : e.status === 'REJECTED' ? 'badge-rejected' : e.status === 'CLARIFIED' ? 'badge-clarified' : 'badge-critical';
       return `
         <div class="crew-card">
@@ -416,10 +416,25 @@ async function runStage2Crew() {
           </div>
         </div>
       `;
-    }).join('') : '<p class="explanation">No active escalations for this cut (all issues monitored or resolved).</p>';
+    }).join('') : '<p class="explanation">No new escalations for this cut (all issues monitored or resolved).</p>';
+
+    if (data.rejected_escalations && data.rejected_escalations.length > 0) {
+      escHtml += `
+        <div class="crew-card" style="border-left: 3px solid #788882; background: #f0f2f1; margin-top: 12px;">
+          <div class="card-header">
+            <span class="card-title">Cross-Cycle State: Downgraded Escalations</span>
+            <span class="card-badge badge-rejected">${data.rejected_escalations.length} Downgraded</span>
+          </div>
+          <div class="card-body">
+            <p>${data.rejected_escalations.length} escalation(s) were previously rejected by the medical monitor and remain downgraded to safety monitoring without repeat escalation.</p>
+          </div>
+        </div>
+      `;
+    }
+    pEsc.innerHTML = escHtml;
 
     // Data Manager Queries
-    pQue.innerHTML = data.queries.length ? data.queries.map((q) => `
+    let queHtml = data.queries.length ? data.queries.map((q) => `
       <div class="crew-card">
         <div class="card-header">
           <span class="card-title">${q.id}: ${q.domain} · ${q.usubjid} · seq ${q.sequence}</span>
@@ -433,6 +448,21 @@ async function runStage2Crew() {
         </div>
       </div>
     `).join('') : '<p class="explanation">No new site queries generated for this cut.</p>';
+
+    if (data.existing_queries_suppressed && data.existing_queries_suppressed.length > 0) {
+      queHtml += `
+        <div class="crew-card" style="border-left: 3px solid var(--green); background: #f8faf6; margin-top: 12px;">
+          <div class="card-header">
+            <span class="card-title">Cross-Cycle Idempotency Active</span>
+            <span class="card-badge badge-approved">${data.existing_queries_suppressed.length} Suppressed</span>
+          </div>
+          <div class="card-body">
+            <p>${data.existing_queries_suppressed.length} duplicate queries suppressed because they were already issued in previous review cycles.</p>
+          </div>
+        </div>
+      `;
+    }
+    pQue.innerHTML = queHtml;
 
     // Compliance Deviations
     pDev.innerHTML = data.compliance_deviations.length ? data.compliance_deviations.map((d) => `

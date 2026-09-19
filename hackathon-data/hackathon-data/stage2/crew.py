@@ -84,6 +84,19 @@ class ReviewCrew:
         }
         self.trace: list[dict[str, Any]] = []
 
+    def reset_memory(self) -> None:
+        self.memory = {
+            "query_keys": set(),
+            "escalation_keys": set(),
+            "rejected_escalations": set(),
+            "subject_cuts": defaultdict(list),
+            "subject_cycles": defaultdict(int),
+            "site_flags": defaultdict(int),
+            "site_open": set(),
+        }
+        self.db.execute("DELETE FROM state")
+        self.db.commit()
+
     def close(self) -> None:
         try:
             self.db.close()
@@ -329,16 +342,19 @@ class ReviewCrew:
 
     def _data_quality_query(self, finding: Any, kind: str) -> dict[str, Any]:
         record = self._as_record(finding.domain, finding.usubjid, finding.sequence)
+        msg = f"Please review {record['domain']} record {record['usubjid']} sequence {record['seq']}: {finding.message}"
         query = {
-            "id": f"Q-{len(self.memory['query_keys']) + 1}",
+            "id": f"Q-{len(self.memory['query_keys']) + 1:04d}",
             "status": "OPEN",
             "code": getattr(finding, "code", "UNKNOWN"),
             "domain": record["domain"],
             "usubjid": record["usubjid"],
             "sequence": record["seq"],
+            "seq": record["seq"],
             "site": self._site_for_subject(self.atlas, record["usubjid"]),
             "issue": kind,
-            "message": f"Please review {record['domain']} record {record['usubjid']} sequence {record['seq']}: {finding.message}",
+            "text": msg,
+            "message": msg,
             "evidence": [record],
             "created_at": self._now(),
             "cut": self.atlas.graph.current_cut,
@@ -414,7 +430,7 @@ class ReviewCrew:
 
     def _submit_api(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         if not self.hub_url and not self.gateway_url:
-            return {"status": "SIMULATED", "id": f"{path}-{len(payload.get('evidence', []))}", "payload": payload}
+            return {"status": "SIMULATED", "id": f"{path.strip('/')}-{len(payload.get('evidence', []))}"}
         target = self.gateway_url if path.startswith("/escalations") else self.hub_url
         request = urllib.request.Request(
             f"{target}{path}",
@@ -679,7 +695,8 @@ class ReviewCrew:
                     api_result=api_result,
                     answer=answer,
                 )
-                if api_result.get("status") == "OK":
+                escalation["status"] = "CLARIFIED"
+                if api_result.get("status") in ("OK", "SIMULATED"):
                     actions.append({"id": escalation["id"], "status": "CLARIFIED", "action": "Clarification answered and resubmitted", "reason": answer})
                 else:
                     actions.append({"id": escalation["id"], "status": "ERROR", "action": "Clarification resubmission failed", "reason": str(api_result)})

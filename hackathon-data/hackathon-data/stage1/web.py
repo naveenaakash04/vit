@@ -41,7 +41,9 @@ def build_stage2_report(data_dir: str | Path, cut: int = 12, protocol_version: i
     atlas = Atlas(str(data_dir), cut=cut)
     crew = ReviewCrew("", "", "team-sentinel", atlas)
     report = crew.run_cycle(cut, protocol_version)
-    return report.as_dict()
+    result = report.as_dict()
+    crew.close()
+    return result
 
 
 def _first_date(row: dict[str, str]) -> str | None:
