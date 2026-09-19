@@ -103,7 +103,7 @@ function drawSubjectKnowledgeGraph(canvas, data) {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const width = (canvas.width = canvas.parentElement.clientWidth || 700);
-  const height = (canvas.height = 320);
+  const height = (canvas.height = 430);
 
   ctx.clearRect(0, 0, width, height);
 
@@ -122,6 +122,8 @@ function drawSubjectKnowledgeGraph(canvas, data) {
   ];
 
   const radius = Math.min(width, height) * 0.36;
+  const cardWidth = Math.min(156, width * 0.22);
+  const cardHeight = 64;
   const nodePositions = [];
 
   canvas.style.cursor = 'pointer';
@@ -182,27 +184,37 @@ function drawSubjectKnowledgeGraph(canvas, data) {
     const nodeR = dom.count > 0 ? 22 : 18;
     nodePositions.push({ domain: dom.name, x, y, radius: nodeR });
 
+    const left = x - cardWidth / 2;
+    const top = y - cardHeight / 2;
+    nodePositions[nodePositions.length - 1] = { domain: dom.name, x, y, radius: Math.max(cardWidth, cardHeight) / 2 };
     ctx.beginPath();
-    ctx.arc(x, y, nodeR, 0, 2 * Math.PI);
+    ctx.roundRect(left, top, cardWidth, cardHeight, 10);
     ctx.fillStyle = dom.bg;
     ctx.fill();
     ctx.lineWidth = 2;
     ctx.strokeStyle = dom.color;
     ctx.stroke();
 
+    ctx.beginPath();
+    ctx.arc(left + 22, top + 22, 13, 0, 2 * Math.PI);
     ctx.fillStyle = dom.color;
-    ctx.font = 'bold 11px DM Mono, monospace';
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 9px DM Mono, monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(dom.name, x, y - 2);
+    ctx.fillText(dom.name, left + 22, top + 22);
 
-    // Label under node
+    ctx.textAlign = 'left';
     ctx.fillStyle = '#15221f';
-    ctx.font = '500 10px Manrope, sans-serif';
-    ctx.fillText(dom.label, x, y + nodeR + 12);
+    ctx.font = '700 11px Manrope, sans-serif';
+    ctx.fillText(dom.label.split(' (')[0], left + 42, top + 19);
+    ctx.fillStyle = '#687873';
+    ctx.font = '500 10px DM Mono, monospace';
+    ctx.fillText(`${dom.count} record${dom.count === 1 ? '' : 's'}`, left + 42, top + 38);
   });
 
-  nodePositions.push({ domain: 'SUBJECT', x: centerX, y: centerY, radius: 34 });
+  nodePositions.push({ domain: 'SUBJECT', x: centerX, y: centerY, radius: 42 });
 }
 
 function graphRecords(data, domain) {
