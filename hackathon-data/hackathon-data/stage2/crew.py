@@ -365,7 +365,7 @@ class ReviewCrew:
         site = escalation["site"]
         decision = self.response_store.monitor_decision(code, usubjid=usubjid, siteid=site)
         if decision is None:
-            return {"status": "APPROVED", "reason": "No monitor override supplied; default to approved action for traceability."}
+            return {"status": "PENDING", "reason": "No monitor response is available; approval-gated action is not executed."}
         status = decision.status.upper()
         if status == "APPROVED":
             return {"status": "APPROVED", "reason": decision.message}
@@ -455,8 +455,9 @@ class ReviewCrew:
         query = self._data_quality_query(finding, finding.code)
         return query
 
-    def run_cycle(self, cut: int, protocol_version: int | None = None) -> ReviewReport:
-        self.atlas = Atlas(str(self.data_dir), cut=cut)
+    def run_cycle(self, cut: int, protocol_version: int | None = None, refresh_atlas: bool = True) -> ReviewReport:
+        if refresh_atlas:
+            self.atlas = Atlas(str(self.data_dir), cut=cut)
         protocol_version = self._protocol_version_for_cut(cut, protocol_version)
         self.trace = []
         self._trace("detect", "cycle_started", cut=cut, protocol_version=protocol_version, team_key=self.team_key)
@@ -664,6 +665,10 @@ class ReviewCrew:
                     escalation_id=escalation["id"],
                     reason=decision["reason"],
                 )
+            elif decision["status"] == "PENDING":
+                escalation["status"] = "PENDING"
+                actions.append({"id": escalation["id"], "status": "PENDING", "action": "Continue under standing limits; no approval-gated action", "reason": decision["reason"]})
+                self._trace("human_gate", "pending", cut=cut, protocol_version=protocol_version, escalation_id=escalation["id"], reason=decision["reason"])
             elif decision["status"] == "CLARIFY":
                 answer = self._answer_clarification(decision["reason"], escalation["usubjid"])
                 self._trace(
