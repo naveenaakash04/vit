@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from stage1.atlas import Atlas
+from stage1.atlas import Atlas, parse_date
 from stage1.web import build_stage2_report
 from stage2.crew import ReviewCrew, ReviewReport
 
@@ -65,6 +65,15 @@ class ReviewCrewTests(unittest.TestCase):
         self.assertEqual(replay["subject_id"], "042-S01-001")
         self.assertTrue(replay["events"])
         self.assertEqual([event["date"] for event in replay["events"]], sorted(event["date"] for event in replay["events"]))
+
+    def test_risk_replay_is_chronological_across_date_formats(self):
+        from stage1.web import _build_subject_replay
+
+        for subject_id in self.atlas.graph.by_subject:
+            replay = _build_subject_replay(subject_id, self.atlas)
+            dates = [parse_date(str(event["date"])) for event in replay["events"]]
+            self.assertNotIn(None, dates)
+            self.assertEqual(dates, sorted(dates))
 
     def test_risk_ui_sections_are_visible(self):
         html_path = Path(__file__).resolve().parent.parent / "stage1" / "static" / "index.html"

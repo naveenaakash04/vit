@@ -5,17 +5,18 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from datetime import date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 try:
-    from .atlas import Atlas
+    from .atlas import Atlas, parse_date
 except (ImportError, ValueError):
     try:
-        from stage1.atlas import Atlas
+        from stage1.atlas import Atlas, parse_date
     except ImportError:
-        from atlas import Atlas
+        from atlas import Atlas, parse_date
 
 
 def build_stage2_report(data_dir: str | Path, cut: int = 12, protocol_version: int | None = None) -> dict[str, Any]:
@@ -212,7 +213,7 @@ def _build_subject_replay(subject_id: str, atlas: Atlas | None = None) -> dict[s
             unit = row.get("LBORRESU") or row.get("VSORRESU") or row.get("EXDOSU") or row.get("EGORRESU") or ""
             events.append({"date": str(date), "domain": domain, "label": str(label), "value": value, "unit": str(unit), "source": f"{domain}.csv"})
 
-    events.sort(key=lambda item: item["date"])
+    events.sort(key=lambda item: (parse_date(str(item["date"])) or date.max, str(item["domain"]), str(item["label"])))
     return {
         "subject_id": subject_id,
         "events": events,
