@@ -47,7 +47,7 @@ def build_stage2_report(data_dir: str | Path, cut: int = 12, protocol_version: i
     return result
 
 
-def build_stage3_report(data_dir: str | Path, cut: int = 12, budget_ms: float = 30000.0) -> dict[str, Any]:
+def build_stage3_report(data_dir: str | Path, cut: int = 12, budget_ms: float = 30000.0, compact: bool = True) -> dict[str, Any]:
     """Execute Stage 3 StudyWatch and return the serializable surveillance report."""
     try:
         from stage2.crew import ReviewCrew
@@ -82,6 +82,16 @@ def build_stage3_report(data_dir: str | Path, cut: int = 12, budget_ms: float = 
     watch = StudyWatch(str(data_dir), crew, budget_ms=budget_ms)
     report = watch.run_period(range(1, 13))
     result = report.as_dict()
+    if compact:
+        result = {
+            **result,
+            "findings_count": len(result["findings"]),
+            "decisions_count": len(result["decisions"]),
+            "trace_count": len(result["trace"]),
+            "findings": result["findings"][-20:],
+            "decisions": result["decisions"][-20:],
+            "trace": result["trace"][-40:],
+        }
     crew.close()
     return result
 
@@ -337,7 +347,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             if request.path == "/api/stage3/report":
                 cut = int(params.get("cut", [self.server.atlas.graph.current_cut or 12])[0])
                 budget_ms = float(params.get("budget_ms", [30000.0])[0])
-                report = build_stage3_report(self.server.atlas.graph.data_dir, cut, budget_ms)
+                detail = params.get("detail", ["compact"])[0].lower()
+                report = build_stage3_report(self.server.atlas.graph.data_dir, cut, budget_ms, compact=detail != "full")
                 self._send_json(report)
                 return
             if request.path == "/api/risk/predict":

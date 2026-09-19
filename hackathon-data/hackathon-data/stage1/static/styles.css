@@ -98,6 +98,9 @@
 .watch-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
 .watch-list li{padding:8px 10px;border-radius:4px;background:#ffffff;border:1px solid var(--line);font-size:12px;color:var(--muted)}
 .watch-label{display:inline-block;padding:3px 7px;border-radius:999px;background:#edf5ee;color:var(--green);font:700 9px 'DM Mono',monospace;margin-right:6px}
+.watch-intro{max-width:780px;padding:18px 0 4px;color:var(--muted);font-size:13px;line-height:1.65}.watch-intro p{margin:0 0 8px}.watch-intro strong{color:var(--ink)}
+.watch-timeline{overflow:hidden}.cut-track{display:flex;gap:7px;align-items:center;padding:8px 0 12px}.cut-dot{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#16795e;color:#fff;font:700 11px 'DM Mono',monospace}.cut-dot.complete:after{content:'';height:2px;width:7px;background:#b7d9c5;position:absolute;margin-left:35px}.cut-dot:last-child:after{display:none}.watch-caption,.watch-evidence{color:var(--muted);font-size:11px}.watch-caption{margin:0}
+.stage3-only .shell{max-width:1120px}.stage3-only .topbar{margin-bottom:18px}.stage3-only .topbar .cut-control,.stage3-only .hero-grid,.stage3-only .workspace,.stage3-only .patient-strip,.stage3-only .patient-panel,.stage3-only .risk-section,.stage3-only .stage2-strip{display:none}.stage3-only .studywatch-strip{margin-top:0;padding:34px 38px}.stage3-only .studywatch-header h3{font-size:30px}.stage3-only .watch-results{padding:22px}
 button,select,input,textarea{font:inherit}
 button{cursor:pointer}
 .primary,.secondary{border:none;border-radius:8px;padding:11px 16px;font:700 12px Manrope;letter-spacing:.2px;transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}

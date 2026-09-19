@@ -103,8 +103,10 @@ async function ask() {
 function drawSubjectKnowledgeGraph(canvas, data) {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const width = (canvas.width = canvas.parentElement.clientWidth || 700);
+  const width = (canvas.width = Math.max(280, (canvas.parentElement.clientWidth || 700) - 32));
   const height = (canvas.height = 500);
+  canvas.style.width = '100%';
+  canvas.style.height = `${height}px`;
 
   ctx.clearRect(0, 0, width, height);
 
@@ -122,9 +124,12 @@ function drawSubjectKnowledgeGraph(canvas, data) {
     { name: 'EG', label: `ECG (${data.ecg ? data.ecg.length : 0})`, count: data.ecg ? data.ecg.length : 0, color: '#16a085', bg: '#e8f8f5' },
   ];
 
-  const radius = Math.min(width, height) * 0.40;
-  const cardWidth = Math.min(150, width * 0.21);
+  const cardWidth = Math.min(150, Math.max(110, width * 0.21));
   const cardHeight = 64;
+  const radius = Math.max(56, Math.min(
+    width / 2 - cardWidth / 2 - 12,
+    height / 2 - cardHeight / 2 - 12,
+  ));
   const nodePositions = [];
 
   canvas.style.cursor = 'pointer';
@@ -141,6 +146,10 @@ function drawSubjectKnowledgeGraph(canvas, data) {
       if (hit) renderGraphDetails(canvas._graphData, hit.domain);
     });
     canvas._graphClickBound = true;
+  }
+  if (!canvas._graphResizeBound) {
+    window.addEventListener('resize', () => drawSubjectKnowledgeGraph(canvas, canvas._graphData));
+    canvas._graphResizeBound = true;
   }
 
   // Draw Edges
@@ -748,15 +757,26 @@ async function runStage3Watch() {
     const data = await getJson(`/api/stage3/report?cut=${cut.value}`);
     const budget = data.budget || {};
     const adversarial = data.adversarial_events || [];
-    const openItems = data.open_items || [];
     const siteRisk = (data.site_risks || []).slice(0, 5);
+    const findings = data.findings || [];
+    const decisions = data.decisions || [];
+    const findingsCount = data.findings_count ?? findings.length;
+    const decisionsCount = data.decisions_count ?? decisions.length;
+    const traceDecisions = (data.trace || []).filter((item) => item.decision_id).slice(-12).reverse();
+    const cutTimeline = (data.cuts || []).map((value) => `<span class="cut-dot complete">${value}</span>`).join('');
     watchResults.classList.remove('hidden');
     watchResults.innerHTML = `
       <div class="watch-grid">
         <div class="watch-box"><span>Cuts</span><strong>${data.cuts ? data.cuts.length : 0}</strong></div>
-        <div class="watch-box"><span>Findings</span><strong>${data.findings ? data.findings.length : 0}</strong></div>
+        <div class="watch-box"><span>Safety findings</span><strong>${findingsCount}</strong></div>
+        <div class="watch-box"><span>Decisions saved</span><strong>${decisionsCount}</strong></div>
         <div class="watch-box"><span>Adversarial</span><strong>${adversarial.length}</strong></div>
         <div class="watch-box"><span>Budget</span><strong>${budget.mode || 'FULL'}</strong></div>
+      </div>
+      <div class="watch-card watch-timeline">
+        <h4>12-cut watch timeline</h4>
+        <div class="cut-track">${cutTimeline}</div>
+        <p class="watch-caption">Each cut re-checks new data, corrections, responses, documents, and previously open decisions.</p>
       </div>
       <div class="watch-card">
         <h4>Top site risk ranking</h4>
@@ -771,9 +791,12 @@ async function runStage3Watch() {
         </ul>
       </div>
       <div class="watch-card">
-        <h4>Open escalations</h4>
+        <h4>Why WATCH acted</h4>
         <ul class="watch-list">
-          ${openItems.length ? openItems.map((item) => `<li><span class="watch-label">${item.status || 'PENDING'}</span>${item.decision_id || item.code || 'Escalation'} · ${item.subject || 'subject'} · age ${item.age_cuts || 0} cuts</li>`).join('') : '<li>All escalations are currently clear or no monitor responses are still pending.</li>'}
+          ${traceDecisions.length ? traceDecisions.map((item) => {
+            const evidence = (item.evidence_lines || []).join(' · ') || 'No record reference attached';
+            return `<li><span class="watch-label">${escapeHtml(item.decision_id)}</span><strong>${escapeHtml(item.what || item.why || 'Decision recorded')}</strong><br><span class="watch-evidence">Evidence: ${escapeHtml(evidence)}</span><br><span class="watch-evidence">Why: ${escapeHtml(item.why || 'Recorded in the WATCH trace.')}</span></li>`;
+          }).join('') : '<li>No decision trace entries were returned.</li>'}
         </ul>
       </div>
     `;
@@ -787,6 +810,12 @@ async function runStage3Watch() {
 }
 
 $('#run-watch')?.addEventListener('click', runStage3Watch);
+
+if (new URLSearchParams(window.location.search).get('stage') === '3') {
+  document.body.classList.add('stage3-only');
+  document.title = 'WATCH | Study Sentinel';
+  runStage3Watch();
+}
 
 loadSummary();
 loadRiskPrediction();
