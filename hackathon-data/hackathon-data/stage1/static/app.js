@@ -122,6 +122,23 @@ function drawSubjectKnowledgeGraph(canvas, data) {
   ];
 
   const radius = Math.min(width, height) * 0.36;
+  const nodePositions = [];
+
+  canvas.style.cursor = 'pointer';
+  canvas._graphData = data;
+  canvas._graphNodes = nodePositions;
+  if (!canvas._graphClickBound) {
+    canvas.addEventListener('click', (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (event.clientX - rect.left) * scaleX;
+      const y = (event.clientY - rect.top) * scaleY;
+      const hit = canvas._graphNodes.find((node) => Math.hypot(x - node.x, y - node.y) <= node.radius + 8);
+      if (hit) renderGraphDetails(canvas._graphData, hit.domain);
+    });
+    canvas._graphClickBound = true;
+  }
 
   // Draw Edges
   domains.forEach((dom, i) => {
@@ -163,6 +180,7 @@ function drawSubjectKnowledgeGraph(canvas, data) {
     const y = centerY + radius * Math.sin(angle);
 
     const nodeR = dom.count > 0 ? 22 : 18;
+    nodePositions.push({ domain: dom.name, x, y, radius: nodeR });
 
     ctx.beginPath();
     ctx.arc(x, y, nodeR, 0, 2 * Math.PI);
@@ -183,6 +201,70 @@ function drawSubjectKnowledgeGraph(canvas, data) {
     ctx.font = '500 10px Manrope, sans-serif';
     ctx.fillText(dom.label, x, y + nodeR + 12);
   });
+
+  nodePositions.push({ domain: 'SUBJECT', x: centerX, y: centerY, radius: 34 });
+}
+
+function graphRecords(data, domain) {
+  const map = {
+    DM: data.demographics ? [data.demographics] : [],
+    LB: data.labs || [],
+    AE: data.adverse_events || [],
+    EX: data.dosing || [],
+    CM: data.concomitant_medications || [],
+    EG: data.ecg || [],
+    MH: data.medical_history || [],
+    DS: data.disposition || [],
+  };
+  return map[domain] || [];
+}
+
+function graphDomainLabel(domain) {
+  return {
+    SUBJECT: 'Subject overview', DM: 'Demographics', LB: 'Laboratory results', AE: 'Adverse events',
+    EX: 'Dosing records', CM: 'Concomitant medications', EG: 'ECG records', MH: 'Medical history', DS: 'Disposition',
+  }[domain] || domain;
+}
+
+function graphRecordSummary(domain, row) {
+  const values = {
+    LB: `${row.LBTESTCD || 'Lab'}: ${row.LBORRES || 'not numeric'} ${row.LBORRESU || ''}`,
+    AE: `${row.AETERM || 'Adverse event'} · ${row.AESEV || 'severity not recorded'}`,
+    EX: `${row.EXTRT || 'Treatment'}: ${row.EXDOSE || 'not recorded'} ${row.EXDOSU || ''}`,
+    CM: `${row.CMTRT || 'Medication'} · ${row.CMCLAS || 'class not recorded'}`,
+    EG: `${row.EGTESTCD || 'ECG'}: ${row.EGORRES || 'not recorded'} ${row.EGORRESU || ''}`,
+    MH: row.MHTERM || 'Medical history record',
+    DS: `${row.DSDECOD || 'Disposition'}${row.DSTERM ? ` · ${row.DSTERM}` : ''}`,
+    DM: `${row.ARM || 'Arm not recorded'} · ${row.SITEID || 'Site not recorded'} · age ${row.AGE || 'n/a'}`,
+  };
+  return values[domain] || 'Record available';
+}
+
+function renderGraphDetails(data, domain) {
+  const panel = $('#graph-details');
+  if (!panel) return;
+  const rows = graphRecords(data, domain);
+  const title = graphDomainLabel(domain);
+  const recordCards = rows.slice(0, 80).map((row) => {
+    const sequence = row[`${domain}SEQ`] || '1';
+    const date = row.LBDTC || row.AESTDTC || row.EXSTDTC || row.CMSTDTC || row.EGDTC || row.DSSTDTC || '';
+    return `<button class="graph-record" type="button" data-record-domain="${domain}" data-record-seq="${sequence}"><span class="graph-record-ref">${domain} · ${sequence}</span><strong>${escapeHtml(graphRecordSummary(domain, row))}</strong><small>${escapeHtml(row.VISIT || date || 'Subject-level record')}</small></button>`;
+  }).join('');
+  const subjectSummary = domain === 'SUBJECT'
+    ? `<div class="graph-detail-stats">${['LB', 'AE', 'EX', 'CM', 'EG', 'MH', 'DS'].map((item) => `<span><strong>${graphRecords(data, item).length}</strong>${graphDomainLabel(item)}</span>`).join('')}</div>`
+    : '';
+  panel.innerHTML = `<div class="graph-detail-head"><div><p class="eyebrow">SELECTED GRAPH NODE</p><h4>${escapeHtml(title)}</h4></div><button id="close-graph-details" class="detail-close" type="button">Close</button></div><p class="graph-detail-caption">${domain === 'SUBJECT' ? 'Choose a colored node to inspect its connected records.' : `${rows.length} connected record${rows.length === 1 ? '' : 's'} for ${escapeHtml(data.USUBJID)}.`}</p>${subjectSummary}<div class="graph-record-list">${recordCards || '<p class="explanation">No records are available for this node.</p>'}</div><div id="graph-record-detail" class="graph-record-detail hidden"></div>`;
+  panel.classList.remove('hidden');
+  $('#close-graph-details').addEventListener('click', () => panel.classList.add('hidden'));
+  panel.querySelectorAll('.graph-record').forEach((card) => card.addEventListener('click', () => {
+    panel.querySelectorAll('.graph-record').forEach((item) => item.classList.remove('selected'));
+    card.classList.add('selected');
+    const selected = rows.find((row) => String(row[`${domain}SEQ`] || '1') === card.dataset.recordSeq) || {};
+    const fields = Object.entries(selected).filter(([, value]) => value !== '' && value != null).map(([key, value]) => `<span><b>${escapeHtml(key)}</b>${escapeHtml(value)}</span>`).join('');
+    const detail = $('#graph-record-detail');
+    detail.classList.remove('hidden');
+    detail.innerHTML = `<div class="graph-record-detail-head"><span class="graph-record-ref">${domain} · ${escapeHtml(card.dataset.recordSeq)}</span><span class="evidence-title">FULL RECORD</span></div><div class="graph-field-grid">${fields}</div>`;
+  }));
 }
 
 function drawLabSafetyChart(canvas, data) {
@@ -312,6 +394,7 @@ async function openPatient(explicitId) {
           <span class="legend-item"><span class="legend-dot" style="background:#d9534f;"></span> Adverse Events (AE)</span>
           <span class="legend-item"><span class="legend-dot" style="background:#f49c5b;"></span> Dosing (EX)</span>
         </div>
+        <div id="graph-details" class="graph-details hidden"></div>
       </div>
 
       <div id="view-chart-container" class="chart-container hidden">
