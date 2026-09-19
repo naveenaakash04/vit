@@ -186,8 +186,6 @@ class ReviewCrew:
         return findings(snapshot)
 
     def _protocol_version_for_cut(self, cut: int, override: int | None) -> int:
-        if override is not None:
-            return int(override)
         snapshot = load_snapshot(self.data_dir, cut)
         return int(snapshot.protocol_version)
 
@@ -458,6 +456,7 @@ class ReviewCrew:
         return query
 
     def run_cycle(self, cut: int, protocol_version: int | None = None) -> ReviewReport:
+        self.atlas = Atlas(str(self.data_dir), cut=cut)
         protocol_version = self._protocol_version_for_cut(cut, protocol_version)
         self.trace = []
         self._trace("detect", "cycle_started", cut=cut, protocol_version=protocol_version, team_key=self.team_key)

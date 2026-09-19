@@ -69,10 +69,24 @@ def _first_numeric_value(row: dict[str, str], keys: tuple[str, ...]) -> float | 
     return None
 
 
-def _risk_reference_limit(test_code: str, default_high: float = 1.0) -> float:
-    code = str(test_code or "").upper()
-    mapping = {"ALT": 60.0, "AST": 60.0, "BILI": 1.2, "BILIRUBIN": 1.2, "ALP": 140.0, "GGT": 80.0}
-    return mapping.get(code, default_high)
+def _risk_lab_signal(atlas: Atlas, row: dict[str, str], test_code: str) -> tuple[float, float] | None:
+    value = _first_numeric_value(row, ("LBSTRESN", "LBORRES", "LBSTRESC"))
+    if value is None:
+        return None
+    reference = atlas._lab_range(test_code, row)
+    if reference is None:
+        return None
+    try:
+        upper_limit = float(reference["HIGH"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    unit = str(row.get("LBORRESU") or "")
+    reference_unit = str(reference.get("UNIT") or "")
+    if unit == "ukat/L" and reference_unit == "U/L":
+        value *= 60
+    elif unit == "U/L" and reference_unit == "ukat/L":
+        value /= 60
+    return value, upper_limit * (60 if reference_unit == "ukat/L" and unit == "ukat/L" else 1)
 
 
 _cached_atlas: Atlas | None = None
@@ -106,7 +120,6 @@ def _build_subject_risk(subject_id: str, atlas: Atlas | None = None) -> dict[str
     evidence: list[dict[str, object]] = []
     details: dict[str, object] = {"site": (patient.get("demographics") or {}).get("SITEID"), "lab_flags": [], "qtc_flags": [], "dose_flags": []}
     demographics = patient.get("demographics") or {}
-    site_id = str(demographics.get("SITEID") or "").upper()
 
     age = _first_numeric_value(demographics, ("AGE",))
     if age is not None and age >= 65:
@@ -115,15 +128,17 @@ def _build_subject_risk(subject_id: str, atlas: Atlas | None = None) -> dict[str
 
     for row in patient.get("labs", []):
         test_code = str(row.get("LBTESTCD") or row.get("LBTEST") or "").upper()
-        value = _first_numeric_value(row, ("LBSTRESN", "LBORRES", "LBSTRESC"))
-        if value is None or not test_code:
+        if not test_code:
             continue
-        limit = _risk_reference_limit(test_code)
-        if test_code in {"ALT", "AST"} and value >= max(3 * limit, 180.0):
+        signal = _risk_lab_signal(atl, row, test_code)
+        if signal is None:
+            continue
+        value, limit = signal
+        if test_code in {"ALT", "AST"} and value > 3 * limit:
             score += 30
             evidence.append({"category": "Laboratory", "severity": "Critical", "label": f"{test_code} > 3x ULN", "value": value})
             details["lab_flags"].append({"test": test_code, "value": value, "limit": limit})
-        elif test_code in {"BILI", "BILIRUBIN"} and value >= max(2 * limit, 2.0):
+        elif test_code in {"BILI", "BILIRUBIN"} and value > 2 * limit:
             score += 25
             evidence.append({"category": "Laboratory", "severity": "High", "label": f"{test_code} elevated beyond 2x ULN", "value": value})
             details["lab_flags"].append({"test": test_code, "value": value, "limit": limit})
@@ -155,9 +170,6 @@ def _build_subject_risk(subject_id: str, atlas: Atlas | None = None) -> dict[str
             score += 18
             evidence.append({"category": "Adverse Event", "severity": "High", "label": "Serious AE or hospitalization flagged", "value": row.get("AETERM")})
             break
-
-    if site_id in {"S03", "S07"}:
-        score = max(0, score - 5)
 
     risk_score = min(max(score, 0), 100)
     risk_level = "Critical" if risk_score >= 75 else "High" if risk_score >= 50 else "Moderate" if risk_score >= 25 else "Low"
