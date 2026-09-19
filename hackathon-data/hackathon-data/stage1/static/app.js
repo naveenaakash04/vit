@@ -7,6 +7,7 @@ const answerTitle = $('#answer-title');
 const answerBadge = $('#answer-badge');
 const answerBody = $('#answer-body');
 const patientPanel = $('#patient');
+const watchResults = $('#watch-results');
 
 for (let value = 1; value <= 12; value += 1) {
   const option = document.createElement('option');
@@ -737,6 +738,55 @@ $('#replay-subject').addEventListener('keydown', (event) => { if (event.key === 
 
 const runCrewBtn = $('#run-crew');
 if (runCrewBtn) runCrewBtn.addEventListener('click', runStage2Crew);
+
+async function runStage3Watch() {
+  const button = $('#run-watch');
+  if (!button || !watchResults) return;
+  button.disabled = true;
+  button.innerHTML = 'Running surveillance <span>⏳</span>';
+  try {
+    const data = await getJson(`/api/stage3/report?cut=${cut.value}`);
+    const budget = data.budget || {};
+    const adversarial = data.adversarial_events || [];
+    const openItems = data.open_items || [];
+    const siteRisk = (data.site_risks || []).slice(0, 5);
+    watchResults.classList.remove('hidden');
+    watchResults.innerHTML = `
+      <div class="watch-grid">
+        <div class="watch-box"><span>Cuts</span><strong>${data.cuts ? data.cuts.length : 0}</strong></div>
+        <div class="watch-box"><span>Findings</span><strong>${data.findings ? data.findings.length : 0}</strong></div>
+        <div class="watch-box"><span>Adversarial</span><strong>${adversarial.length}</strong></div>
+        <div class="watch-box"><span>Budget</span><strong>${budget.mode || 'FULL'}</strong></div>
+      </div>
+      <div class="watch-card">
+        <h4>Top site risk ranking</h4>
+        <ul class="watch-list">
+          ${siteRisk.length ? siteRisk.map((item, index) => `<li><span class="watch-label">#${index + 1}</span>${item.site} · ${item.finding_count} findings</li>`).join('') : '<li>No site risk signals were detected.</li>'}
+        </ul>
+      </div>
+      <div class="watch-card">
+        <h4>Adversarial events</h4>
+        <ul class="watch-list">
+          ${adversarial.length ? adversarial.map((event) => `<li><span class="watch-label">${event.type}</span>Cut ${event.cut || 'n/a'} · ${event.reason || event.action || 'flagged for review'}</li>`).join('') : '<li>No adversarial events were detected in the current watch run.</li>'}
+        </ul>
+      </div>
+      <div class="watch-card">
+        <h4>Open escalations</h4>
+        <ul class="watch-list">
+          ${openItems.length ? openItems.map((item) => `<li><span class="watch-label">${item.status || 'PENDING'}</span>${item.decision_id || item.code || 'Escalation'} · ${item.subject || 'subject'} · age ${item.age_cuts || 0} cuts</li>`).join('') : '<li>All escalations are currently clear or no monitor responses are still pending.</li>'}
+        </ul>
+      </div>
+    `;
+  } catch (error) {
+    watchResults.classList.remove('hidden');
+    watchResults.innerHTML = `<div class="watch-card"><h4>Study Watch unavailable</h4><ul class="watch-list"><li>${error.message}</li></ul></div>`;
+  } finally {
+    button.disabled = false;
+    button.innerHTML = 'Run surveillance <span>◌</span>';
+  }
+}
+
+$('#run-watch')?.addEventListener('click', runStage3Watch);
 
 loadSummary();
 loadRiskPrediction();

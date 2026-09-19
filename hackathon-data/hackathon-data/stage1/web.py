@@ -47,6 +47,45 @@ def build_stage2_report(data_dir: str | Path, cut: int = 12, protocol_version: i
     return result
 
 
+def build_stage3_report(data_dir: str | Path, cut: int = 12, budget_ms: float = 30000.0) -> dict[str, Any]:
+    """Execute Stage 3 StudyWatch and return the serializable surveillance report."""
+    try:
+        from stage2.crew import ReviewCrew
+    except (ImportError, ValueError):
+        try:
+            from ..stage2.crew import ReviewCrew
+        except (ImportError, ValueError):
+            import sys
+            sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+            from stage2.crew import ReviewCrew
+
+    try:
+        from stage1.atlas import Atlas
+    except (ImportError, ValueError):
+        try:
+            from .atlas import Atlas
+        except (ImportError, ValueError):
+            from atlas import Atlas
+
+    try:
+        from stage3.watch import StudyWatch
+    except (ImportError, ValueError):
+        try:
+            from ..stage3.watch import StudyWatch
+        except (ImportError, ValueError):
+            import sys
+            sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+            from stage3.watch import StudyWatch
+
+    atlas = Atlas(str(data_dir), cut=cut)
+    crew = ReviewCrew("", "", "team-sentinel-watch", atlas)
+    watch = StudyWatch(str(data_dir), crew, budget_ms=budget_ms)
+    report = watch.run_period(range(1, 13))
+    result = report.as_dict()
+    crew.close()
+    return result
+
+
 def _first_date(row: dict[str, str]) -> str | None:
     for key in ("AESTDTC", "LBDTC", "VSDTC", "EXSTDTC", "CMSTDTC", "DSSTDTC", "MHSTDTC", "EGDTC", "VISITDTC", "DMDTC", "RFSTDTC", "DATE", "DTC"):
         value = row.get(key)
@@ -293,6 +332,12 @@ class RequestHandler(BaseHTTPRequestHandler):
                 cut = int(params.get("cut", [self.server.atlas.graph.current_cut or 12])[0])
                 pv = int(params.get("protocol_version", [0])[0]) or None
                 report = build_stage2_report(self.server.atlas.graph.data_dir, cut, pv)
+                self._send_json(report)
+                return
+            if request.path == "/api/stage3/report":
+                cut = int(params.get("cut", [self.server.atlas.graph.current_cut or 12])[0])
+                budget_ms = float(params.get("budget_ms", [30000.0])[0])
+                report = build_stage3_report(self.server.atlas.graph.data_dir, cut, budget_ms)
                 self._send_json(report)
                 return
             if request.path == "/api/risk/predict":
