@@ -9,4 +9,4 @@ python -m stage3.watch --data-dir data --budget-ms 30000 --report-out stage3/sur
 python -m unittest stage3.test_watch stage2.test_crew -v
 ```
 
-The decision trace is written to `stage3/decision_log.jsonl`. Call `watch.explain("D-001")` to read an explanation from the recorded trace rather than reconstructing it from current data.
+The decision trace is written to `stage3/decision_log.jsonl`. Call `watch.explain("D-001")` to read an explanation from the recorded trace rather than reconstructing it from current data. `surveillance_summary.json` is the compact checked-in public summary; full report and decision JSON files are generated locally because they contain thousands of evidence records.
