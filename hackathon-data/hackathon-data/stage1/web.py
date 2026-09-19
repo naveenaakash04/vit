@@ -73,10 +73,23 @@ def _risk_reference_limit(test_code: str, default_high: float = 1.0) -> float:
     return mapping.get(code, default_high)
 
 
-def _build_subject_risk(subject_id: str) -> dict[str, object]:
-    data_dir = Path(__file__).resolve().parent.parent / "data"
-    atlas = Atlas(str(data_dir), cut=12)
-    patient = atlas.graph.patient360(subject_id)
+_cached_atlas: Atlas | None = None
+
+
+def _get_atlas(atlas: Atlas | None = None) -> Atlas:
+    global _cached_atlas
+    if atlas is not None:
+        return atlas
+    if _cached_atlas is None:
+        data_dir = Path(__file__).resolve().parent.parent / "data"
+        _cached_atlas = Atlas(str(data_dir), cut=12)
+        _cached_atlas.graph.build()
+    return _cached_atlas
+
+
+def _build_subject_risk(subject_id: str, atlas: Atlas | None = None) -> dict[str, object]:
+    atl = _get_atlas(atlas)
+    patient = atl.graph.patient360(subject_id)
     if not patient:
         return {
             "subject_id": subject_id,
@@ -157,10 +170,9 @@ def _build_subject_risk(subject_id: str) -> dict[str, object]:
     }
 
 
-def _build_subject_replay(subject_id: str) -> dict[str, object]:
-    data_dir = Path(__file__).resolve().parent.parent / "data"
-    atlas = Atlas(str(data_dir), cut=12)
-    patient = atlas.graph.patient360(subject_id)
+def _build_subject_replay(subject_id: str, atlas: Atlas | None = None) -> dict[str, object]:
+    atl = _get_atlas(atlas)
+    patient = atl.graph.patient360(subject_id)
     if not patient:
         return {"subject_id": subject_id, "events": [], "event_count": 0, "summary": "No replay timeline is available for this subject."}
 
@@ -269,18 +281,28 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self._send_json(report)
                 return
             if request.path == "/api/risk/predict":
-                subject_id = params.get("subject_id", [""])[0].strip()
-                if not subject_id:
-                    self._send_json({"error": "Please provide a subject_id."}, 400)
+                raw_id = (params.get("subject_id") or params.get("subject") or params.get("usubjid") or [""])[0].strip()
+                if not raw_id or raw_id.lower() == "all":
+                    if not self.server.atlas.graph.tables:
+                        self.server.atlas.graph.build()
+                    all_risks = [
+                        _build_subject_risk(s, atlas=self.server.atlas)
+                        for s in sorted(self.server.atlas.graph.by_subject.keys())
+                    ]
+                    self._send_json(all_risks)
                     return
-                self._send_json(_build_subject_risk(subject_id))
+                match = re.search(r"\b\d{3}-S\d{1,3}-\d{3}\b", raw_id, re.IGNORECASE)
+                subject_id = match.group(0).upper() if match else raw_id.upper()
+                self._send_json(_build_subject_risk(subject_id, atlas=self.server.atlas))
                 return
             if request.path == "/api/risk/replay":
-                subject_id = params.get("subject_id", [""])[0].strip()
-                if not subject_id:
+                raw_id = (params.get("subject_id") or params.get("subject") or params.get("usubjid") or [""])[0].strip()
+                if not raw_id:
                     self._send_json({"error": "Please provide a subject_id."}, 400)
                     return
-                self._send_json(_build_subject_replay(subject_id))
+                match = re.search(r"\b\d{3}-S\d{1,3}-\d{3}\b", raw_id, re.IGNORECASE)
+                subject_id = match.group(0).upper() if match else raw_id.upper()
+                self._send_json(_build_subject_replay(subject_id, atlas=self.server.atlas))
                 return
             if request.path == "/api/graph":
                 subject_id = params.get("subject_id", [""])[0].strip()

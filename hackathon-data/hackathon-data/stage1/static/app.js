@@ -529,33 +529,70 @@ if (tabEsc && tabQue && tabDev && tabTra) {
 
 async function loadRiskPrediction() {
   const subjectInput = $('#risk-subject');
-  const subjectId = (subjectInput ? subjectInput.value.trim() : '') || '042-S01-001';
+  const subjectId = (subjectInput ? subjectInput.value.trim() : '') || '042-S08-014';
   const pill = $('#risk-pill');
   const score = $('#risk-score');
   const fill = $('#risk-fill');
   const summary = $('#risk-summary');
+  const evidenceList = $('#risk-evidence');
   try {
     const data = await getJson(`/api/risk/predict?subject_id=${encodeURIComponent(subjectId)}`);
-    pill.textContent = data.risk_level || 'Low';
-    pill.className = 'risk-pill ' + (data.risk_level === 'Critical' ? 'critical' : data.risk_level === 'High' ? 'high' : data.risk_level === 'Moderate' ? 'moderate' : 'neutral');
+    const lvl = data.risk_level || 'Low';
+    pill.textContent = lvl;
+    pill.className = 'risk-pill ' + (lvl === 'Critical' ? 'critical' : lvl === 'High' ? 'high' : lvl === 'Moderate' ? 'moderate' : 'neutral');
     score.textContent = data.risk_score || 0;
     fill.style.width = `${Math.min(Math.max(Number(data.risk_score || 0), 0), 100)}%`;
     summary.textContent = data.summary || 'No risk summary available.';
+
+    if (evidenceList) {
+      const evidence = data.evidence || [];
+      if (evidence.length === 0) {
+        evidenceList.innerHTML = '<li class="risk-evidence-item"><strong>No high-risk safety signals flagged</strong><span>Baseline</span></li>';
+      } else {
+        evidenceList.innerHTML = evidence.map((item) => {
+          const sevClass = (item.severity || 'low').toLowerCase();
+          const valDisplay = item.value !== undefined && item.value !== null ? `(${item.value})` : '';
+          return `<li class="risk-evidence-item ${sevClass}">
+            <div>
+              <strong>${escapeHtml(item.label || item.category || '')}</strong> ${escapeHtml(valDisplay)}
+            </div>
+            <span>${escapeHtml(item.category || '')} · ${escapeHtml(item.severity || '')}</span>
+          </li>`;
+        }).join('');
+      }
+    }
   } catch (error) {
     summary.textContent = error.message || 'Risk prediction unavailable.';
+    if (evidenceList) evidenceList.innerHTML = '';
   }
 }
 
 async function loadRiskReplay() {
   const subjectInput = $('#replay-subject');
-  const subjectId = (subjectInput ? subjectInput.value.trim() : '') || '042-S01-001';
+  const subjectId = (subjectInput ? subjectInput.value.trim() : '') || '042-S08-014';
   const list = $('#replay-list');
+  const counter = $('#replay-counter');
   try {
     const data = await getJson(`/api/risk/replay?subject_id=${encodeURIComponent(subjectId)}`);
     const events = data.events || [];
-    list.innerHTML = events.length ? events.slice(0, 12).map((event) => `<li><span>${event.date}</span><strong>${event.domain}</strong><small>${event.label}</small></li>`).join('') : '<li>No replay events available.</li>';
+    if (counter) counter.textContent = `${events.length} Events`;
+    list.innerHTML = events.length
+      ? events.map((event) => {
+          const dom = event.domain || 'EVT';
+          const val = event.value !== undefined && event.value !== null && event.value !== event.label ? ` = ${event.value} ${event.unit || ''}` : '';
+          return `<li>
+            <div class="replay-row">
+              <span class="domain-badge ${dom}">${dom}</span>
+              <span>${event.date || 'N/A'}</span>
+            </div>
+            <strong>${escapeHtml(event.label || dom)}${escapeHtml(val)}</strong>
+            <small>${escapeHtml(event.source || '')}</small>
+          </li>`;
+        }).join('')
+      : '<li>No replay events available.</li>';
   } catch (error) {
     list.innerHTML = `<li>${error.message || 'Replay unavailable.'}</li>`;
+    if (counter) counter.textContent = '0 Events';
   }
 }
 

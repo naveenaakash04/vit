@@ -31,14 +31,18 @@
       <div class="risk-grid">
         <div class="risk-box">
           <div class="risk-header"><h4>Risk Prediction</h4><span id="risk-pill" class="risk-pill neutral">Low</span></div>
-          <div class="risk-search"><input id="risk-subject" placeholder="subject ID" value="042-S01-001"><button id="risk-run" class="primary">Predict</button></div>
+          <div class="risk-search"><input id="risk-subject" placeholder="subject ID e.g. 042-S08-014" value="042-S08-014"><button id="risk-run" class="primary">Predict</button></div>
           <div id="risk-score" class="risk-score">0</div>
           <div class="risk-bar"><span id="risk-fill"></span></div>
           <p id="risk-summary" class="risk-summary">Loading risk summary…</p>
+          <div class="risk-evidence-box">
+            <h5 class="evidence-title">Contributing Risk Evidence Signals</h5>
+            <ul id="risk-evidence" class="risk-evidence-list"></ul>
+          </div>
         </div>
         <div class="risk-box">
-          <div class="risk-header"><h4>Risk Replay</h4><span class="risk-pill neutral">Timeline</span></div>
-          <div class="risk-search"><input id="replay-subject" placeholder="subject ID" value="042-S01-001"><button id="replay-run" class="secondary">Replay</button></div>
+          <div class="risk-header"><h4>Risk Replay</h4><span id="replay-counter" class="risk-pill neutral">0 Events</span></div>
+          <div class="risk-search"><input id="replay-subject" placeholder="subject ID e.g. 042-S08-014" value="042-S08-014"><button id="replay-run" class="secondary">Replay</button></div>
           <ul id="replay-list" class="replay-list"></ul>
         </div>
       </div>
